@@ -59,7 +59,50 @@ ev_description
 
 ---
 
-## 2.3 Horodatage
+## 2.3 Convention de nommage des identifiants
+
+Les clés primaires utilisent un préfixe court suivi de `_id`.
+
+Exemples :
+
+```text
+pr_id   → Projection
+ct_id   → Catégorie
+gr_id   → Grade
+rl_id   → Rôle
+mb_id   → Membre
+cr_id   → Contribution
+py_id   → Paiement
+sc_id   → Score
+```
+
+Les clés étrangères reprennent le nom exact de la clé primaire référencée.
+
+Exemples :
+
+```text
+mb_id
+ct_id
+cr_id
+```
+
+### Exceptions historiques
+
+Certaines tables ont été créées lors des premières phases d'implémentation avec un préfixe à trois lettres :
+
+```text
+asg_id  → Affectation
+evt_id  → Évènement
+```
+
+Ces identifiants sont conservés afin d'éviter une migration inutile.
+
+Toutes les nouvelles tables doivent respecter la convention courte utilisée dans le reste du modèle.
+
+
+---
+
+## 2.4 Horodatage
 
 Toutes les tables métier possèdent :
 
@@ -70,7 +113,7 @@ date_updated_at timestamptz
 
 ---
 
-## 2.4 Métadonnées
+## 2.5 Métadonnées
 
 Les entités principales possèdent :
 
