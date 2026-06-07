@@ -1,30 +1,57 @@
-# ContinGest — Modèle de Données V1
+# ContinGest — Modèle de Données V1 Final
 
-Version : 1.0
-Statut : Validé pour implémentation
-Dernière mise à jour : Juin 2026
+## Informations générales
+
+**Projet :** ContinGest
+**Version :** V1 Final
+**Statut :** Validé
+**Date :** Juin 2026 (08/06/2026)
 
 ---
 
 # 1. Objectif
 
-Ce document définit le modèle de données de référence de ContinGest V1.
+Ce document décrit le modèle de données final de ContinGest V1.
 
-Il sert de base pour :
+Il constitue la référence officielle du schéma de base de données avant le démarrage des développements avancés :
 
-- la création des tables PostgreSQL ;
-- la mise en place des règles de sécurité (RLS) ;
-- le développement frontend ;
-- les calculs métier ;
-- les futures évolutions du système.
+* triggers ;
+* fonctions métier ;
+* statistiques ;
+* RBAC / RLS ;
+* automatisations.
 
 ---
 
-# 2. Principes de conception
+# 2. Principes généraux
 
-## 2.1 Préfixes
+## 2.1 Contingent unique
 
-Toutes les tables utilisent le préfixe :
+ContinGest V1 gère un seul contingent.
+
+Si un autre contingent souhaite utiliser l'application, une nouvelle instance indépendante devra être déployée.
+
+---
+
+## 2.2 Projections
+
+Les projections disposent d'une autonomie de gestion interne.
+
+Cependant, les informations globales du contingent restent visibles à l'ensemble des membres :
+
+* statistiques ;
+* scores ;
+* caisse ;
+* activités globales ;
+* informations générales.
+
+---
+
+## 2.3 Convention de nommage
+
+### Tables
+
+Préfixe :
 
 ```text
 ctg_
@@ -33,726 +60,92 @@ ctg_
 Exemples :
 
 ```text
-ctg_projection
 ctg_member
 ctg_event
+ctg_payment
 ```
 
----
+### Clés primaires
 
-## 2.2 Préfixes des colonnes
-
-Chaque colonne commence par le préfixe de son entité.
-
-Exemples :
+Convention :
 
 ```text
-pr_nom
-pr_code
-
-me_nom
-me_prenom
-
-ev_nom
-ev_description
+xx_id
 ```
-
----
-
-## 2.3 Convention de nommage des identifiants
-
-Les clés primaires utilisent un préfixe court suivi de `_id`.
-
-Exemples :
-
-```text
-pr_id   → Projection
-ct_id   → Catégorie
-gr_id   → Grade
-rl_id   → Rôle
-mb_id   → Membre
-cr_id   → Contribution
-py_id   → Paiement
-sc_id   → Score
-```
-
-Les clés étrangères reprennent le nom exact de la clé primaire référencée.
 
 Exemples :
 
 ```text
 mb_id
-ct_id
-cr_id
+pr_id
+rl_id
 ```
 
-### Exceptions historiques
-
-Certaines tables ont été créées lors des premières phases d'implémentation avec un préfixe à trois lettres :
+Exceptions historiques conservées :
 
 ```text
-asg_id  → Affectation
-evt_id  → Évènement
-```
-
-Ces identifiants sont conservés afin d'éviter une migration inutile.
-
-Toutes les nouvelles tables doivent respecter la convention courte utilisée dans le reste du modèle.
-
-
----
-
-## 2.4 Horodatage
-
-Toutes les tables métier possèdent :
-
-```sql
-date_created_at timestamptz
-date_updated_at timestamptz
+asg_id
+evt_id
 ```
 
 ---
 
-## 2.5 Métadonnées
+# 3. Tables du système
 
-Les entités principales possèdent :
+## Référentiel
 
-```sql
-metadata jsonb
-```
-
-afin de permettre des extensions futures sans modification immédiate du schéma.
-
----
-
-# 3. Entités principales
+* ctg_projection
+* ctg_category
+* ctg_grade
+* ctg_role
 
 ---
 
-# 3.1 Projection
+## Membres
 
-Table :
-
-```text
-ctg_projection
-```
-
-Représente une Projection du Contingent.
-
-## Champs principaux
-
-| Champ | Description |
-|---------|---------|
-| pr_id | Identifiant |
-| pr_code | Code unique |
-| pr_nom | Nom |
-| pr_description | Description |
-| pr_logo_url | Logo |
-| pr_banner_url | Bannière |
-| pr_theme_color | Couleur dominante |
-| pr_is_active | Projection active |
-| pr_metadata | Données complémentaires |
+* ctg_member
+* ctg_assignment
 
 ---
 
-## Relations
+## Évènements
 
-Une Projection possède :
-
-- plusieurs membres ;
-- plusieurs évènements ;
-- plusieurs affectations ;
-- plusieurs statistiques.
+* ctg_event
+* ctg_contribution
+* ctg_payment
+* ctg_transaction
 
 ---
 
-# 3.2 Membre
+## Scores
 
-Table :
-
-```text
-ctg_member
-```
-
-Représente une personne appartenant au Contingent.
+* ctg_score
 
 ---
 
-## Types possibles
+## Participation
 
-```text
-REGULAR
-STAFF
-```
-
-### REGULAR
-
-Membre régulier.
-
-### STAFF
-
-Personnel d'encadrement.
+* ctg_proposal
+* ctg_event_feedback
 
 ---
 
-## Champs principaux
+## Communication
 
-| Champ | Description |
-|---------|---------|
-| me_id | Identifiant |
-| me_projection_id | Projection |
-| me_type | REGULAR / STAFF |
-| me_matricule | Matricule |
-| me_nom | Nom |
-| me_prenom | Prénom |
-| me_grade_id | Grade |
-| me_phone | Téléphone |
-| me_email | Email |
-| me_photo_url | Photo |
-| me_is_validated | Validation |
-| me_is_active | Actif |
-| me_metadata | Données complémentaires |
+* ctg_notification
 
 ---
 
-## Règles métier
+## Documents
 
-Un membre STAFF :
-
-- ne peut pas appartenir à un bureau ;
-- ne peut pas recevoir d'affectation de gouvernance.
-
-Un membre REGULAR :
-
-- peut appartenir à un bureau projection ;
-- peut appartenir au bureau général.
+* ctg_attachment
 
 ---
 
-# 3.3 Affectation
+## Administration
 
-Table :
-
-```text
-ctg_assignment
-```
-
-Permet d'attribuer une responsabilité à un membre.
-
----
-
-## Exemples
-
-Projection :
-
-```text
-Président Projection
-SG
-Trésorier
-Communication
-Discipline
-```
-
-Global :
-
-```text
-Président Général
-SG Général
-Trésorier Général
-```
-
-Encadrement :
-
-```text
-Directeur FETTA
-Chef de Section
-Adjoint
-Petit gradé
-```
-
----
-
-## Champs principaux
-
-| Champ | Description |
-|---------|---------|
-| as_id | Identifiant |
-| as_member_id | Membre |
-| as_role_id | Fonction |
-| as_scope_type | GLOBAL / PROJECTION |
-| as_scope_id | Identifiant portée |
-| as_is_active | Active |
-
----
-
-# 3.4 Rôle
-
-Table :
-
-```text
-ctg_role
-```
-
-Contient les fonctions configurables du système.
-
----
-
-## Types
-
-```text
-GOVERNANCE
-STAFF
-SYSTEM
-```
-
----
-
-## Exemples
-
-### Gouvernance
-
-```text
-Président
-SG
-Trésorier
-Communication
-Discipline
-```
-
-### Encadrement
-
-```text
-Directeur FETTA
-Chef de Section
-Adjoint
-```
-
----
-
-# 3.5 Catégorie
-
-Table :
-
-```text
-ctg_category
-```
-
-Catégories utilisées pour les cotisations.
-
----
-
-## Exemples
-
-```text
-Officiers
-Sous-Officiers
-Militaires du Rang
-```
-
----
-
-# 3.6 Grade
-
-Table :
-
-```text
-ctg_grade
-```
-
-Permet d'associer un grade à une catégorie.
-
----
-
-## Exemple
-
-```text
-Capitaine
-Adjudant
-Sergent
-Soldat
-```
-
----
-
-# 3.7 Évènement
-
-Table :
-
-```text
-ctg_event
-```
-
-Représente un évènement solidaire.
-
----
-
-## Portées
-
-### GLOBAL
-
-Évènement du Contingent.
-
-### PROJECTION
-
-Évènement propre à une Projection.
-
----
-
-## Natures
-
-### GENERAL
-
-Anniversaire.
-
-Retrouvailles.
-
-Activité collective.
-
-### PARTICULAR
-
-Mariage.
-
-Naissance.
-
-Décès.
-
-Maladie.
-
----
-
-## États
-
-```text
-DRAFT
-ACTIVE
-COMPLETED
-CLOSING
-CLOSED
-ARCHIVED
-```
-
----
-
-## Champs principaux
-
-| Champ | Description |
-|---------|---------|
-| ev_id | Identifiant |
-| ev_scope_type | GLOBAL / PROJECTION |
-| ev_scope_id | Projection concernée |
-| ev_nature | GENERAL / PARTICULAR |
-| ev_title | Titre |
-| ev_description | Description |
-| ev_status | Statut |
-| ev_start_date | Début |
-| ev_end_date | Fin |
-| ev_metadata | Données complémentaires |
-
----
-
-# 3.8 Membres concernés
-
-Table :
-
-```text
-ctg_event_member
-```
-
----
-
-Permet de rattacher un ou plusieurs membres à un évènement particulier.
-
----
-
-## Exemple
-
-Décès du père de :
-
-```text
-Membre 3
-Membre 5
-Membre 11
-```
-
----
-
-Cette table remplace totalement l'idée :
-
-```text
-3;5;11
-```
-
-qui serait difficile à maintenir.
-
----
-
-# 3.9 Cotisation
-
-Table :
-
-```text
-ctg_contribution
-```
-
-Montant attendu par catégorie pour un évènement.
-
----
-
-## Exemple
-
-| Catégorie | Montant |
-|------------|----------|
-| Officiers | 20 000 |
-| Sous-Officiers | 10 000 |
-| MDR | 5 000 |
-
----
-
-# 3.10 Paiement
-
-Table :
-
-```text
-ctg_payment
-```
-
-Représente un versement réel.
-
----
-
-## Particularités
-
-Autorise :
-
-- paiements partiels ;
-- paiements multiples ;
-- régularisations.
-
----
-
-# 3.11 Transaction
-
-Table :
-
-```text
-ctg_transaction
-```
-
-Historique financier.
-
----
-
-## Types
-
-```text
-INCOME
-EXPENSE
-```
-
----
-
-## Exemples
-
-Entrées :
-
-```text
-Cotisations
-Dons
-Participation exceptionnelle
-```
-
-Sorties :
-
-```text
-Aide
-Transport
-Impression
-Organisation
-```
-
----
-
-# 3.12 Pièce justificative
-
-Table :
-
-```text
-ctg_attachment
-```
-
-Permet d'associer :
-
-- image ;
-- PDF ;
-- document.
-
-à une transaction ou un évènement.
-
----
-
-# 3.13 Score de solidarité
-
-Table :
-
-```text
-ctg_score
-```
-
----
-
-## Types
-
-```text
-GLOBAL
-PROJECTION
-```
-
----
-
-## Utilisation
-
-Calcul :
-
-```text
-Montant payé
-/
-Montant attendu
-```
-
----
-
-## Impact
-
-Détermine :
-
-- le score du membre ;
-- les aides futures.
-
----
-
-# 3.14 Proposition
-
-Table :
-
-```text
-ctg_proposal
-```
-
-Suggestion adressée :
-
-- au Bureau Général ;
-- au Bureau Projection.
-
----
-
-## États
-
-```text
-PENDING
-RECEIVED
-ACCEPTED
-REJECTED
-```
-
----
-
-# 3.15 Commentaire d'évènement
-
-Table :
-
-```text
-ctg_event_feedback
-```
-
-Permet :
-
-- noter un évènement ;
-- laisser un commentaire ;
-- proposer une amélioration.
-
----
-
-## Conditions possibles
-
-Configurables :
-
-- score minimal ;
-- évènement clôturé ;
-- encadrement autorisé ou non.
-
----
-
-# 3.16 Notification
-
-Table :
-
-```text
-ctg_notification
-```
-
-Notifications internes.
-
----
-
-## Exemples
-
-```text
-Validation
-Paiement
-Proposition
-Commentaire
-Clôture
-```
-
----
-
-# 3.17 Paramètres système
-
-Table :
-
-```text
-ctg_setting
-```
-
-Configuration globale.
-
----
-
-## Exemples
-
-```text
-Activation score solidarité
-
-Prise en compte encadrement
-
-Seuil commentaire
-
-Visibilité statistiques
-
-Durée archivage
-```
-
----
-
-# 3.18 Journal d'audit
-
-Table :
-
-```text
-ctg_audit_log
-```
-
-Historique des modifications.
-
----
-
-## Objectifs
-
-Garantir :
-
-- transparence ;
-- traçabilité ;
-- contrôle.
+* ctg_setting
+* ctg_audit_log
 
 ---
 
@@ -760,52 +153,130 @@ Garantir :
 
 ```text
 Projection
-├── Membres
-├── Evènements
-├── Affectations
-└── Scores
-
-Membre
-├── Paiements
-├── Scores
-├── Propositions
-└── Notifications
-
-Evènement
-├── Cotisations
-├── Paiements
-├── Membres concernés
-├── Commentaires
-└── Transactions
+ └── Membres
 
 Catégorie
-└── Cotisations
+ └── Grades
 
-Transaction
-└── Pièces jointes
+Membre
+ ├── Affectations
+ ├── Paiements
+ ├── Notifications
+ ├── Propositions
+ ├── Score
+ └── Pièces jointes
+
+Évènement
+ ├── Contributions
+ ├── Transactions
+ ├── Feedbacks
+ └── Pièces jointes
+
+Contribution
+ └── Paiements
+
+Paiement
+ └── Transaction
+
+Proposition
+ └── Pièces jointes
 ```
 
 ---
 
-# 5. Principes d'évolution
+# 5. Contraintes métier importantes
 
-Le modèle V1 doit rester :
+## Évènements
 
-- simple ;
-- stable ;
-- cohérent.
+Un évènement :
 
-Les évolutions futures devront privilégier :
-
-- l'ajout de nouvelles tables ;
-- l'ajout de nouvelles relations ;
-
-plutôt que la modification des structures existantes.
+* GLOBAL ne possède pas de projection ;
+* PROJECTION doit obligatoirement appartenir à une projection.
 
 ---
 
-# 6. Statut
+## Contributions
 
-Ce document constitue la référence officielle du modèle de données ContinGest V1.
+Une seule contribution peut exister pour un couple :
 
-Toute création SQL doit être conforme à ce document avant implémentation.
+```text
+(évènement, catégorie)
+```
+
+---
+
+## Feedback
+
+Un membre ne peut déposer qu'un seul feedback par évènement.
+
+---
+
+## Pièces jointes
+
+Une pièce jointe doit appartenir à un seul propriétaire métier :
+
+* transaction ;
+* évènement ;
+* proposition.
+
+Jamais plusieurs simultanément.
+
+---
+
+## Scores
+
+La colonne :
+
+```text
+ctg_score.pr_id
+```
+
+est volontairement conservée en V1 pour simplifier certaines requêtes statistiques.
+
+Règle métier :
+
+```text
+ctg_score.pr_id
+=
+ctg_member.pr_id
+```
+
+pour le membre référencé par :
+
+```text
+ctg_score.mb_id
+```
+
+Cette redondance pourra être supprimée dans une version ultérieure.
+
+---
+
+# 6. Sécurité
+
+Toutes les tables métier possèdent :
+
+```text
+ROW LEVEL SECURITY (RLS)
+```
+
+activé.
+
+Les politiques d'accès détaillées seront définies dans la phase RBAC/RLS.
+
+---
+
+# 7. Évolutions prévues
+
+Phase 2 :
+
+* trigger updated_at ;
+* audit automatique ;
+* calcul des scores ;
+* vues statistiques ;
+* RBAC / RLS complet.
+
+---
+
+# 8. Statut
+
+Le présent document constitue la référence officielle du modèle de données ContinGest V1.
