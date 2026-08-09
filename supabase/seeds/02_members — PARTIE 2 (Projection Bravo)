@@ -1,0 +1,118 @@
+/*
+==============================================================================
+ContinGest
+Seed Officiel de Développement
+------------------------------------------------------------------------------
+02_members.sql
+------------------------------------------------------------------------------
+Création des membres de démonstration
+Projection Bravo
+==============================================================================
+*/
+
+INSERT INTO public.ctg_member (
+
+    pr_id,
+    gr_id,
+
+    mb_type,
+
+    mb_last_name,
+    mb_first_name,
+
+    mb_phone,
+    mb_email,
+
+    mb_status,
+    mb_is_active,
+
+    mb_is_validated,
+    mb_validated_at,
+
+    mb_metadata
+
+)
+
+SELECT
+
+    p.pr_id,
+    g.gr_id,
+
+    'REGULAR',
+
+    x.last_name,
+    x.first_name,
+
+    x.phone,
+
+    NULL,
+
+    'ACTIVE',
+
+    true,
+
+    true,
+    now(),
+
+    '{}'::jsonb
+
+FROM (
+
+VALUES
+
+-- =====================================================
+-- OFFICIERS
+-- =====================================================
+
+('ETOUGHE','Fabrice','070000101','COL'),
+('OKOMO','Thierry','070000102','LCL'),
+('NDONG','Aristide','070000103','CDT'),
+('MAVOUNGOU','Blaise','070000104','CPT'),
+('BIKORO','Gérard','070000105','LTN'),
+
+-- =====================================================
+-- SOUS-OFFICIERS
+-- =====================================================
+
+('ESSONO','Norbert','070000106','ADC'),
+('BOUSSOUGOU','Pascal','070000107','ADJ'),
+('NGOMA','Joël','070000108','SCH'),
+('MOUKAGNI','Gilbert','070000109','SGT'),
+('NTSAME','Marcel','070000110','SGT'),
+
+-- =====================================================
+-- MILITAIRES DU RANG
+-- =====================================================
+
+('MOUSSAVOU','Yann','070000111','CCH'),
+('OKINDA','Boris','070000112','CPL'),
+('OBAME','Grégory','070000113','CPL'),
+('IKAZA','David','070000114','SD2'),
+('MAVIOGA','Cédric','070000115','SD2')
+
+)
+
+AS x(
+    last_name,
+    first_name,
+    phone,
+    grade_code
+)
+
+JOIN public.ctg_projection p
+ON p.pr_code='BRAVO'
+
+JOIN public.ctg_grade g
+ON g.gr_code=x.grade_code
+
+WHERE NOT EXISTS (
+
+    SELECT 1
+
+    FROM public.ctg_member m
+
+    WHERE
+        m.mb_last_name=x.last_name
+    AND m.mb_first_name=x.first_name
+
+);
